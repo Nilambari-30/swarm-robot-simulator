@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Report — Swarm Algorithms in Drone Coordination</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Georgia&family=Inter:wght@400;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:#f4f6fa;color:#1a1a2e;line-height:1.65;font-size:13.5px}
+  .page{max-width:760px;margin:30px auto;background:#fff;padding:52px 60px 48px;box-shadow:0 2px 18px rgba(0,0,0,.10);border-radius:4px}
+  /* Header */
+  .header{border-bottom:2.5px solid #1a1a2e;padding-bottom:14px;margin-bottom:22px}
+  .header h1{font-size:19px;font-weight:700;letter-spacing:.01em;color:#0d0d1e}
+  .header .subtitle{font-size:12px;color:#555;margin-top:5px}
+  .header .meta{font-size:11.5px;color:#777;margin-top:3px}
+  /* Abstract */
+  .abstract{background:#f0f4ff;border-left:3px solid #3a5bc7;padding:11px 16px;margin-bottom:22px;border-radius:0 4px 4px 0}
+  .abstract p{font-size:12.5px;color:#333;font-style:italic}
+  /* Sections */
+  h2{font-size:13.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0d0d1e;margin:20px 0 8px;border-bottom:1px solid #e0e3ee;padding-bottom:4px}
+  p{margin-bottom:10px;text-align:justify}
+  /* Two-column layout for use cases */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0 14px}
+  .card{background:#f7f9ff;border:1px solid #d8dff0;border-radius:6px;padding:11px 13px}
+  .card h3{font-size:12px;font-weight:700;color:#1a2e8a;margin-bottom:4px}
+  .card p{font-size:12px;color:#333;margin:0;text-align:left}
+  /* Project highlight box */
+  .project-box{background:#0d0d1e;color:#e2e8f0;border-radius:6px;padding:14px 18px;margin:14px 0}
+  .project-box h3{font-size:12px;font-weight:700;color:#90c0ff;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em}
+  .project-box ul{padding-left:16px}
+  .project-box li{font-size:12px;margin-bottom:5px;color:#c8d8f0}
+  .project-box li span{color:#3DBE7A;font-weight:600}
+  /* Table */
+  table{width:100%;border-collapse:collapse;margin:10px 0 14px;font-size:12px}
+  th{background:#1a1a2e;color:#fff;padding:7px 10px;text-align:left;font-weight:600}
+  td{padding:6px 10px;border-bottom:1px solid #e5e8f0}
+  tr:nth-child(even) td{background:#f7f9ff}
+  /* Conclusion */
+  .conclusion{background:#fff8e7;border:1px solid #f0d080;border-radius:5px;padding:12px 16px;margin-top:14px}
+  .conclusion p{margin:0;font-size:12.5px}
+  /* Footer */
+  .footer{margin-top:24px;border-top:1px solid #e0e3ee;padding-top:10px;font-size:11px;color:#999;text-align:center}
+  /* References */
+  .refs{font-size:11.5px;color:#444}
+  .refs li{margin-bottom:3px}
+  @media print{
+    body{background:#fff}
+    .page{box-shadow:none;margin:0;padding:40px 50px}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="header">
+    <h1>How Are Swarm Algorithms Used in Drone Coordination?</h1>
+    <div class="subtitle">A Study of Boids-Based Flocking Behaviour and Its Applications in Autonomous Multi-UAV Systems</div>
+    <div class="meta">Subject: Artificial Intelligence &nbsp;|&nbsp; Topic: Swarm Intelligence &nbsp;|&nbsp; Year: 2025</div>
+  </div>
+
+  <!-- ── Abstract ───────────────────────────────────────────────────────── -->
+  <div class="abstract">
+    <p><strong>Abstract —</strong> Swarm intelligence draws inspiration from natural collective behaviours — birds flocking, fish schooling, ant colonies — to coordinate large groups of simple agents without a central controller. This report examines the foundational Boids algorithm, explains its three rules (cohesion, alignment, separation), and maps those principles to real-world multi-drone systems across domains including search and rescue, precision agriculture, and military operations.</p>
+  </div>
+
+  <!-- ── 1. Introduction ────────────────────────────────────────────────── -->
+  <h2>1. Introduction to Swarm Intelligence</h2>
+  <p>Swarm intelligence is a branch of artificial intelligence where many simple agents, each following local rules, produce complex coordinated behaviour at the group level — without any single agent having a global view of the system. Unlike traditional robotics, no central computer tells each drone exactly what to do. Instead, each drone senses its immediate neighbours and applies a small set of rules to decide its next move.</p>
+  <p>The field was formalised in 1986 when Craig Reynolds published the <em>Boids</em> model, which showed that just <strong>three steering rules</strong> are sufficient to simulate realistic flocking. Today these same rules — scaled up and enriched — power fleets of hundreds of drones working together.</p>
+
+  <!-- ── 2. The Boids Algorithm ─────────────────────────────────────────── -->
+  <h2>2. The Boids Algorithm — Three Core Rules</h2>
+  <p>Each agent (robot / drone) runs the same three rules every time-step, using only information from nearby neighbours within a perception radius <em>r</em>:</p>
+
+  <table>
+    <tr>
+      <th>Rule</th><th>Goal</th><th>Behaviour</th>
+    </tr>
+    <tr>
+      <td><strong>Separation</strong></td>
+      <td>Avoid collision</td>
+      <td>Steer away from neighbours that are too close</td>
+    </tr>
+    <tr>
+      <td><strong>Alignment</strong></td>
+      <td>Match heading</td>
+      <td>Steer toward the average velocity of nearby neighbours</td>
+    </tr>
+    <tr>
+      <td><strong>Cohesion</strong></td>
+      <td>Stay together</td>
+      <td>Steer toward the average position (centre of mass) of neighbours</td>
+    </tr>
+  </table>
+
+  <p>A fourth practical rule — <strong>obstacle avoidance</strong> — steers agents away from static objects using a repulsive force proportional to proximity. The combined result is a flock that stays together, moves coherently, and navigates around barriers entirely through local computation.</p>
+
+  <!-- ── 3. From Simulation to Drones ──────────────────────────────────── -->
+  <h2>3. Applying Swarm Algorithms to Real Drones</h2>
+  <p>Modern UAV (Unmanned Aerial Vehicle) systems extend Boids with additional layers: GPS for absolute positioning, Wi-Fi or RF mesh networking for neighbour communication, altitude separation rules, and task-assignment modules (e.g., dividing a search grid between drones). The core flocking logic remains almost unchanged from Reynolds' 1986 paper.</p>
+  <p>Key advantages of a swarm approach over a single large drone are:</p>
+  <p>
+    <strong>Scalability</strong> — Adding more drones increases capability without redesigning the system. &nbsp;
+    <strong>Fault tolerance</strong> — If one drone fails, the rest adapt automatically. &nbsp;
+    <strong>Parallel coverage</strong> — Many drones cover an area simultaneously, cutting task time dramatically.
+  </p>
+
+  <!-- ── 4. Real-World Use Cases ────────────────────────────────────────── -->
+  <h2>4. Real-World Use Cases</h2>
+
+  <div class="two-col">
+    <div class="card">
+      <h3>🔍 Search &amp; Rescue</h3>
+      <p>After earthquakes or wildfires, swarms of small drones spread across the affected area using cohesion (stay in formation) and alignment (sweep in one direction). Infrared sensors detect heat signatures. Intel's drone swarms have been deployed in disaster scenarios covering areas unreachable by rescue workers.</p>
+    </div>
+    <div class="card">
+      <h3>🌾 Precision Agriculture</h3>
+      <p>Drone swarms spray pesticides or fertiliser at field scale. Each drone covers its local zone (separation prevents overlap) while the group maintains spacing (alignment). This reduces chemical use by up to 40% compared to uniform spraying and is already commercial in China (DJI Agras fleets).</p>
+    </div>
+    <div class="card">
+      <h3>🎆 Light Shows &amp; Entertainment</h3>
+      <p>Intel's Shooting Stars drones (500–5,000 drones) use real-time swarm coordination to form 3-D shapes in the sky. Formation changes use cohesion rules to regroup drones smoothly. Timing is synchronised but individual steering is distributed — a pure swarm architecture.</p>
+    </div>
+    <div class="card">
+      <h3>🛡️ Military &amp; Surveillance</h3>
+      <p>The US DARPA OFFSET programme developed swarms of 250+ drones for urban reconnaissance. Separation prevents mid-air collisions in tight corridors; alignment keeps the swarm moving as a unit; cohesion stops stragglers from being isolated. The LOCUST (Low-Cost UAV Swarming Technology) programme demonstrated autonomous naval swarms in 2016.</p>
+    </div>
+    <div class="card">
+      <h3>📦 Package Delivery</h3>
+      <p>Amazon Prime Air and Wing Aviation are researching drone corridors where hundreds of delivery drones share airspace. Swarm rules manage safe separation automatically — the FAA's UTM (UAS Traffic Management) framework proposes Boids-like rules as the basis for drone air-traffic control at low altitude.</p>
+    </div>
+    <div class="card">
+      <h3>🚀 Space Exploration</h3>
+      <p>NASA's JPL proposed CubeSat swarms for planetary exploration. Multiple small probes cover different surface patches (cohesion keeps them within communication range; separation prevents crashes on rugged terrain). The Mars helicopter Ingenuity validated low-gravity autonomous flight — a stepping stone toward swarm missions.</p>
+    </div>
+  </div>
+
+  <!-- ── 5. This Project ────────────────────────────────────────────────── -->
+  <h2>5. This Project — What Was Implemented</h2>
+
+  <div class="project-box">
+    <h3>Swarm Robot Movement Simulator</h3>
+    <ul>
+      <li><span>Language:</span> Python (Pygame rendering) + C shared library (ctypes)</li>
+      <li><span>Agents:</span> 30 robots in three colour groups (amber, rose, emerald)</li>
+      <li><span>Physics:</span> Full Boids algorithm — separation, alignment, cohesion — computed in C</li>
+      <li><span>Obstacle avoidance:</span> Soft repulsive force + hard push-out when inside obstacle radius</li>
+      <li><span>Vector math in C:</span> vec2_len, vec2_dist, vec2_normalize, vec2_limit, vec2_dot — all called via ctypes</li>
+      <li><span>Visualisation:</span> Real-time car-shaped robots, glowing trails, mini-map, live stats panel</li>
+      <li><span>Performance:</span> O(n²) boids loop runs fully in C — 60 FPS with 30+ robots</li>
+    </ul>
+  </div>
+
+  <!-- ── 6. Challenges ──────────────────────────────────────────────────── -->
+  <h2>6. Challenges &amp; Limitations</h2>
+  <p>The main challenge in swarm systems is the <strong>parameter sensitivity</strong> of the three rules. Too much separation causes the swarm to scatter; too much cohesion causes dangerous clustering. Real drone deployments add further complexity: communication latency means a drone's view of its neighbours is always slightly out of date, GPS drift introduces positional errors, and wind disrupts alignment forces. Engineers typically tune parameters in simulation (using systems like the one in this project) before deploying hardware.</p>
+  <p>Scalability beyond a few hundred drones also requires replacing the naïve O(n²) neighbour scan with spatial data structures (k-d trees, spatial hashing) to keep per-frame computation manageable — an active research area.</p>
+
+  <!-- ── Conclusion ─────────────────────────────────────────────────────── -->
+  <div class="conclusion">
+    <p><strong>Conclusion:</strong> Swarm algorithms turn three simple local rules into powerful collective intelligence. From the original Boids simulation to fleets of real drones covering disaster zones, agricultural fields, and city airspace, the same mathematical core — separation, alignment, cohesion — remains the foundation. As drones become cheaper and more reliable, swarm coordination will become the default architecture for any task requiring many autonomous agents working in parallel.</p>
+  </div>
+
+  <!-- ── References ─────────────────────────────────────────────────────── -->
+  <h2>References</h2>
+  <ol class="refs">
+    <li>Reynolds, C. W. (1987). <em>Flocks, herds and schools: A distributed behavioral model.</em> SIGGRAPH '87.</li>
+    <li>Dorigo, M., &amp; Birattari, M. (2007). <em>Swarm Intelligence.</em> Scholarpedia.</li>
+    <li>DARPA OFFSET Programme. (2020). <em>Urban Swarm Autonomy.</em> defense.gov.</li>
+    <li>Intel Corporation. (2021). <em>Shooting Stars Drone Light Shows.</em> newsroom.intel.com.</li>
+    <li>FAA. (2022). <em>UAS Traffic Management (UTM) Concept of Operations.</em> faa.gov.</li>
+    <li>NASA JPL. (2023). <em>Small Satellite Swarm Concepts for Planetary Science.</em> jpl.nasa.gov.</li>
+  </ol>
+
+  <div class="footer">Swarm Robot Movement Simulator Project &nbsp;|&nbsp; Python + C ctypes Implementation &nbsp;|&nbsp; 2025</div>
+</div>
+</body>
+</html>

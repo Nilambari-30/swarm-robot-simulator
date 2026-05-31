@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Swarm Robot Movement Simulator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#07091a;color:#e2e8f0;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+#header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.12)}
+.logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,rgba(80,120,255,0.5),rgba(120,60,220,0.5));border:1px solid rgba(150,180,255,0.3);display:flex;align-items:center;justify-content:center}
+.title-block{margin-left:12px}
+.title-block h1{font-size:15px;font-weight:700;color:#e2e8ff}
+.title-block p{font-size:11px;color:rgba(160,180,255,.7);margin-top:1px}
+#stats{display:flex;gap:10px}
+.stat-badge{padding:6px 14px;min-width:64px;text-align:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:12px}
+.stat-badge .sl{font-size:10px;color:rgba(160,180,255,.6);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.stat-badge .sv{font-size:15px;font-weight:700}
+#main{display:flex;flex:1;overflow:hidden}
+#canvas-wrap{flex:1;position:relative}
+canvas{width:100%;height:100%;display:block;cursor:crosshair}
+#pause-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+#pause-hint .hint-box{padding:12px 24px;font-size:13px;color:rgba(200,220,255,.8);text-align:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px}
+#panel{flex-shrink:0;width:260px;background:rgba(255,255,255,.06);border-left:1px solid rgba(255,255,255,.12);overflow-y:auto;display:flex;flex-direction:column}
+.p-section{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.07)}
+.section-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(120,150,220,.6);margin-bottom:10px}
+.btn-row{display:flex;gap:8px}
+.btn-play{flex:1;padding:9px 0;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,rgba(99,179,237,.35),rgba(144,104,255,.35));border:1px solid rgba(99,179,237,.45);color:#fff}
+.btn-pause{flex:1;padding:9px 0;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,rgba(252,129,74,.35),rgba(255,80,120,.35));border:1px solid rgba(252,129,74,.45);color:#fff}
+.btn-reset{padding:9px 13px;border-radius:9px;font-size:14px;cursor:pointer;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);color:#fff}
+.slider-row{margin-bottom:12px}
+.slider-row:last-child{margin-bottom:0}
+.slider-header{display:flex;justify-content:space-between;margin-bottom:5px}
+.slider-header span{font-size:12px;color:rgba(180,200,255,.70)}
+.slider-header .sv{font-weight:700}
+.track-wrap{position:relative;height:16px;display:flex;align-items:center}
+.track-bg{width:100%;height:3px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;position:absolute}
+.track-fill{height:100%;border-radius:99px}
+input[type=range]{position:absolute;width:100%;opacity:0;cursor:pointer;height:16px;margin:0}
+.toggle-row{display:flex;align-items:center;justify-content:space-between}
+.toggle-row span{font-size:12px;color:rgba(180,200,255,.75)}
+.toggle{width:38px;height:20px;border-radius:99px;cursor:pointer;position:relative;border:1px solid rgba(255,255,255,.12)}
+.toggle-knob{position:absolute;top:3px;width:14px;height:14px;border-radius:50%;background:#fff}
+.legend-item{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.legend-item span{font-size:11px;color:rgba(160,180,255,.65)}
+.legend-hint{font-size:11px;color:rgba(120,150,255,.5);margin-top:10px}
+#legend-section{padding:14px 16px;margin-top:auto;border-top:1px solid rgba(255,255,255,.07)}
+</style>
+</head>
+<body>
+<div id="header">
+  <div style="display:flex;align-items:center">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx="5" cy="10" r="3" fill="#E8832A" opacity="0.9"/>
+        <circle cx="10" cy="5" r="3" fill="#D96B9E" opacity="0.9"/>
+        <circle cx="15" cy="10" r="3" fill="#3DBE7A" opacity="0.9"/>
+        <circle cx="10" cy="15" r="3" fill="#E8832A" opacity="0.9"/>
+        <circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.25)"/>
+      </svg>
+    </div>
+    <div class="title-block">
+      <h1>Swarm Robot Movement Simulator</h1>
+      <p>Flocking behavior with obstacle avoidance</p>
+    </div>
+  </div>
+  <div id="stats">
+    <div class="stat-badge"><div class="sl">Robots</div><div class="sv" id="s-robots" style="color:#E8832A">30</div></div>
+    <div class="stat-badge"><div class="sl">Obstacles</div><div class="sv" id="s-obstacles" style="color:#6080ff">8</div></div>
+    <div class="stat-badge"><div class="sl">Avg Speed</div><div class="sv" id="s-speed" style="color:#3DBE7A">0.00</div></div>
+    <div class="stat-badge"><div class="sl">Clustered</div><div class="sv" id="s-clustered" style="color:#D96B9E">0</div></div>
+  </div>
+</div>
+<div id="main">
+  <div id="canvas-wrap">
+    <canvas id="sim-canvas"></canvas>
+    <div id="pause-hint">
+      <div class="hint-box">Press <strong style="color:#90c0ff">Play</strong> to start - Click canvas to add obstacles</div>
+    </div>
+  </div>
+  <div id="panel">
+    <div class="p-section">
+      <div class="section-label">Simulation</div>
+      <div class="btn-row">
+        <button id="btn-play" class="btn-play">Play</button>
+        <button class="btn-reset" onclick="resetSim()">Reset</button>
+      </div>
+    </div>
+    <div class="p-section">
+      <div class="section-label">Agents</div>
+      <div class="slider-row">
+        <div class="slider-header"><span>Robots</span><span class="sv" id="v-robots" style="color:#E8832A">30</span></div>
+        <div class="track-wrap">
+          <div class="track-bg"><div class="track-fill" id="f-robots" style="background:#E8832A;width:33%"></div></div>
+          <input type="range" id="r-robots" min="5" max="80" step="1" value="30" oninput="onRobots(this.value)">
+        </div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span>Obstacles</span><span class="sv" id="v-obstacles" style="color:#6080ff">8</span></div>
+        <div class="track-wrap">
+          <div class="track-bg"><div class="track-fill" id="f-obstacles" style="background:#6080ff;width:32%"></div></div>
+          <input type="range" id="r-obstacles" min="0" max="25" step="1" value="8" oninput="onObstacles(this.value)">
+        </div>
+      </div>
+    </div>
+    <div class="p-section">
+      <div class="section-label">Movement</div>
+      <div class="slider-row">
+        <div class="slider-header"><span>Speed</span><span class="sv" id="v-speed" style="color:#3DBE7A">2.2</span></div>
+        <div class="track-wrap">
+          <div class="track-bg"><div class="track-fill" id="f-speed" style="background:#3DBE7A;width:37%"></div></div>
+          <input type="range" id="r-speed" min="0.5" max="5" step="0.1" value="2.2" oninput="onSpeed(this.value)">
+        </div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span>Neighbor Radius</span><span class="sv" id="v-nradius" style="color:#D96B9E">80</span></div>
+        <div class="track-wrap">
+          <div class="track-bg"><div class="track-fill" id="f-nradius" style="background:#D96B9E;width:38%"></div></div>
+          <input type="range" id="r-nradius" min="30" max="160" step="5" value="80" oninput="onNRadius(this.value)">
+        </div>
+      </div>
+    </div>
+    <div class="p-section">
+      <div class="section-label">Swarm Behavior</div>
+      <div class="slider-row">
+        <div class="slider-header"><span>Separation</span><span class="sv" id="v-sep" style="color:#E8832A">1.6</span></div>
+        <div class="track-wrap">
+          <div class="track-bg"><div class="track-fill" id="f-sep" style="background:#E8832A;width:40%"></div></div>
+          <input type="range" id="r-sep" min="0" max="4" step="0.1" value="1.6" oninput="onSep(this.value)">
+        </div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span>Alignment</span><span class="sv" id="v-ali" style="color:#D96B9E">1.0</span></div>
+        <div class="track-wrap">
+          <div class="track-bg"><div class="track-fill" id="f-ali" style="background:#D96B9E;width:25%"></div></div>
+          <input type="range" id="r-ali" min="0" max="4" step="0.1" value="1.0" oninput="onAli(this.value)">
+        </div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-header"><span>Cohesion</span><span class="sv" id="v-coh" style="color:#3DBE7A">0.9</span></div>
+        <div class="track-wrap">
+          <div class="track-bg"><div class="track-fill" id="f-coh" style="background:#3DBE7A;width:22%"></div></div>
+          <input type="range" id="r-coh" min="0" max="4" step="0.1" value="0.9" oninput="onCoh(this.value)">
+        </div>
+      </div>
+    </div>
+    <div class="p-section">
+      <div class="section-label">Display</div>
+      <div class="toggle-row">
+        <span>Show Trails</span>
+        <div class="toggle" id="tog-trails" onclick="toggleTrails()" style="background:#6080ff">
+          <div class="toggle-knob" id="knob-trails" style="left:calc(100% - 17px)"></div>
+        </div>
+      </div>
+    </div>
+    <div id="legend-section">
+      <div class="section-label" style="margin-bottom:8px">Legend</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#E8832A"></div><span>Amber cars</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#D96B9E"></div><span>Rose cars</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3DBE7A"></div><span>Emerald cars</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4060cc"></div><span>Obstacles</span></div>
+      <div class="legend-hint">Click canvas to place obstacles</div>
+    </div>
+  </div>
+</div>
+<script>
+var COLORS=['#E8832A','#D96B9E','#3DBE7A'];
+var GLOWS=['rgba(232,131,42,0.7)','rgba(217,107,158,0.7)','rgba(61,190,122,0.7)'];
+var R_RAD=8,OBS_RAD=22;
+var S={robots:[],obstacles:[],running:false,speed:2.2,trails:true,sep:1.6,ali:1.0,coh:0.9,avoidR:55,nR:80,W:0,H:0,tick:0,animFrame:0};
+var canvas=document.getElementById('sim-canvas');
+var ctx=canvas.getContext('2d');
+function resize(){var w=document.getElementById('canvas-wrap');canvas.width=S.W=w.clientWidth;canvas.height=S.H=w.clientHeight;initSim();drawFrame();}
+window.addEventListener('resize',resize);
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function hexRgb(h){return{r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16)};}
+function colorAlpha(h,a){var c=hexRgb(h);return 'rgba('+c.r+','+c.g+','+c.b+','+a+')';}
+function lightenHex(h,amt){var c=hexRgb(h);return '#'+[clamp(c.r+amt,0,255),clamp(c.g+amt,0,255),clamp(c.b+amt,0,255)].map(function(x){var s=x.toString(16);return s.length<2?'0'+s:s;}).join('');}
+function darkenHex(h,amt){return lightenHex(h,-amt);}
+function limitSpeed(vx,vy,max){var s=Math.hypot(vx,vy);return s>max?{vx:vx/s*max,vy:vy/s*max}:{vx:vx,vy:vy};}
+function randV(spd){var a=Math.random()*Math.PI*2;return{vx:Math.cos(a)*spd,vy:Math.sin(a)*spd};}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
+function spawnRobots(count){
+  var out=[];
+  for(var i=0;i<count;i++){
+    var x,y,t=0,ok;
+    do{x=R_RAD*2+Math.random()*(S.W-R_RAD*4);y=R_RAD*2+Math.random()*(S.H-R_RAD*4);ok=true;
+      for(var oi=0;oi<S.obstacles.length;oi++){if(Math.hypot(S.obstacles[oi].x-x,S.obstacles[oi].y-y)<S.obstacles[oi].radius+R_RAD*3){ok=false;break;}}t++;}
+    while(!ok&&t<50);
+    var v=randV(S.speed);out.push({id:i,x:x,y:y,vx:v.vx,vy:v.vy,ci:i%3,trail:[]});
+  }
+  return out;
+}
+function spawnObstacles(count){
+  var out=[];
+  for(var i=0;i<count;i++){
+    var x,y,t=0,ok;
+    var shape=Math.random()<0.5?'circle':'rect';
+    var radius=OBS_RAD+Math.random()*14;
+    var w=shape==='rect'?38+Math.random()*32:radius*2;
+    var h=shape==='rect'?26+Math.random()*20:radius*2;
+    var pad=Math.max(w,h)/2+12;
+    do{x=pad+Math.random()*(S.W-pad*2);y=pad+Math.random()*(S.H-pad*2);ok=true;
+      for(var oi=0;oi<out.length;oi++){if(Math.hypot(out[oi].x-x,out[oi].y-y)<out[oi].radius+radius+20){ok=false;break;}}t++;}
+    while(!ok&&t<40);
+    out.push({id:i,x:x,y:y,radius:radius,shape:shape,w:w,h:h});
+  }
+  return out;
+}
+function initSim(){S.obstacles=spawnObstacles(parseInt(document.getElementById('r-obstacles').value));S.robots=spawnRobots(parseInt(document.getElementById('r-robots').value));}
+function drawGlassyObstacle(obs){
+  ctx.save();var x=obs.x,y=obs.y;
+  if(obs.shape==='circle'){
+    var R=obs.radius;
+    var glow=ctx.createRadialGradient(x,y,R*0.5,x,y,R*1.6);glow.addColorStop(0,'rgba(80,120,255,.18)');glow.addColorStop(1,'rgba(80,120,255,0)');
+    ctx.fillStyle=glow;ctx.beginPath();ctx.arc(x,y,R*1.6,0,Math.PI*2);ctx.fill();
+    var body=ctx.createRadialGradient(x-R*0.3,y-R*0.3,1,x,y,R);body.addColorStop(0,'rgba(100,140,255,.38)');body.addColorStop(0.5,'rgba(30,42,107,.55)');body.addColorStop(1,'rgba(10,18,60,.70)');
+    ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);ctx.fillStyle=body;ctx.fill();
+    ctx.strokeStyle='rgba(150,190,255,.45)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,R,0,Math.PI*2);ctx.stroke();
+    ctx.save();ctx.globalAlpha=0.35;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x-R*0.18,y-R*0.18,R*0.55,Math.PI*1.1,Math.PI*1.7);ctx.stroke();ctx.restore();
+    ctx.globalAlpha=0.12;ctx.strokeStyle='#fff';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(x-R*0.55,y);ctx.lineTo(x+R*0.55,y);ctx.moveTo(x,y-R*0.55);ctx.lineTo(x,y+R*0.55);ctx.stroke();
+  }else{
+    var hw=obs.w/2,hh=obs.h/2;ctx.shadowColor='rgba(80,130,255,.4)';ctx.shadowBlur=18;
+    var body2=ctx.createLinearGradient(x-hw,y-hh,x+hw,y+hh);body2.addColorStop(0,'rgba(90,130,255,.40)');body2.addColorStop(0.45,'rgba(30,42,107,.52)');body2.addColorStop(1,'rgba(8,15,55,.68)');
+    roundRect(ctx,x-hw,y-hh,obs.w,obs.h,8);ctx.fillStyle=body2;ctx.fill();ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(140,180,255,.45)';ctx.lineWidth=1.5;roundRect(ctx,x-hw,y-hh,obs.w,obs.h,8);ctx.stroke();
+    ctx.save();ctx.globalAlpha=0.35;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(x-hw+10,y-hh+1.5);ctx.lineTo(x+hw-10,y-hh+1.5);ctx.stroke();ctx.restore();
+    ctx.globalAlpha=0.10;ctx.strokeStyle='#fff';ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(x,y-hh);ctx.lineTo(x,y+hh);ctx.moveTo(x-hw,y);ctx.lineTo(x+hw,y);ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawGlassyCar(cx,cy,angle,ci){
+  var color=COLORS[ci],glow=GLOWS[ci];ctx.save();ctx.translate(cx,cy);ctx.rotate(angle);var CW=11,CH=18;
+  ctx.shadowColor=glow;ctx.shadowBlur=16;
+  var body=ctx.createLinearGradient(-CW/2,-CH/2,CW/2,CH/2);body.addColorStop(0,colorAlpha(color,0.88));body.addColorStop(0.3,colorAlpha(lightenHex(color,30),0.75));body.addColorStop(0.7,colorAlpha(color,0.65));body.addColorStop(1,colorAlpha(darkenHex(color,40),0.80));
+  roundRect(ctx,-CW/2,-CH/2,CW,CH,3.5);ctx.fillStyle=body;ctx.fill();ctx.shadowBlur=0;
+  var sheen=ctx.createLinearGradient(-CW/2,-CH/2,CW/2,CH/2);sheen.addColorStop(0,'rgba(255,255,255,.38)');sheen.addColorStop(0.45,'rgba(255,255,255,.08)');sheen.addColorStop(1,'rgba(255,255,255,0)');
+  roundRect(ctx,-CW/2,-CH/2,CW,CH,3.5);ctx.fillStyle=sheen;ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.30)';ctx.lineWidth=0.8;roundRect(ctx,-CW/2,-CH/2,CW,CH,3.5);ctx.stroke();
+  var wg=ctx.createLinearGradient(-CW/2+2,-CH/2+3,CW/2-2,-CH/2+3+CH*0.38);wg.addColorStop(0,'rgba(180,230,255,.65)');wg.addColorStop(1,'rgba(120,190,255,.30)');
+  roundRect(ctx,-CW/2+2,-CH/2+3,CW-4,CH*0.38,2);ctx.fillStyle=wg;ctx.fill();
+  ctx.save();ctx.globalAlpha=0.45;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=0.9;ctx.beginPath();ctx.moveTo(-CW/2+3.5,-CH/2+4);ctx.lineTo(CW/2-3.5,-CH/2+4);ctx.stroke();ctx.restore();
+  ctx.shadowColor='rgba(255,240,100,.9)';ctx.shadowBlur=7;ctx.fillStyle='rgba(255,245,150,1)';ctx.beginPath();ctx.arc(-CW/2+2,-CH/2+1.5,1.8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(CW/2-2,-CH/2+1.5,1.8,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  ctx.shadowColor='rgba(255,60,60,.8)';ctx.shadowBlur=6;ctx.fillStyle='rgba(255,80,80,.95)';ctx.beginPath();ctx.arc(-CW/2+2,CH/2-1.5,1.4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(CW/2-2,CH/2-1.5,1.4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  ctx.fillStyle='#1e1e2e';ctx.strokeStyle='rgba(255,255,255,.20)';ctx.lineWidth=0.5;
+  var wh=[[-CW/2-1,-CH/2+3],[CW/2-2,-CH/2+3],[-CW/2-1,CH/2-7],[CW/2-2,CH/2-7]];
+  for(var i=0;i<wh.length;i++){roundRect(ctx,wh[i][0],wh[i][1],2.8,4.5,1);ctx.fill();roundRect(ctx,wh[i][0],wh[i][1],2.8,4.5,1);ctx.stroke();}
+  ctx.restore();
+}
+function drawMiniMap(){
+  var MW=160,MH=Math.round(MW*(S.H/S.W)),PAD=14;var mx=S.W-MW-PAD,my=S.H-MH-PAD,sx=MW/S.W,sy=MH/S.H;
+  ctx.save();ctx.shadowColor='rgba(80,130,255,.35)';ctx.shadowBlur=18;ctx.fillStyle='rgba(8,14,45,.85)';roundRect(ctx,mx,my,MW,MH,10);ctx.fill();ctx.shadowBlur=0;
+  ctx.save();ctx.beginPath();roundRect(ctx,mx,my,MW,MH,10);ctx.clip();
+  ctx.strokeStyle='rgba(80,120,220,.15)';ctx.lineWidth=0.6;
+  for(var c=1;c<4;c++){ctx.beginPath();ctx.moveTo(mx+MW/4*c,my);ctx.lineTo(mx+MW/4*c,my+MH);ctx.stroke();}
+  for(var r=1;r<3;r++){ctx.beginPath();ctx.moveTo(mx,my+MH/3*r);ctx.lineTo(mx+MW,my+MH/3*r);ctx.stroke();}
+  for(var oi=0;oi<S.obstacles.length;oi++){var o=S.obstacles[oi],ox=mx+o.x*sx,oy=my+o.y*sy;ctx.fillStyle='rgba(80,110,220,.40)';if(o.shape==='circle'){ctx.beginPath();ctx.arc(ox,oy,Math.max(2,o.radius*sx),0,Math.PI*2);ctx.fill();}else{ctx.fillRect(ox-Math.max(4,o.w*sx)/2,oy-Math.max(3,o.h*sy)/2,Math.max(4,o.w*sx),Math.max(3,o.h*sy));}}
+  for(var ri=0;ri<S.robots.length;ri++){var rb=S.robots[ri],rx=mx+rb.x*sx,ry=my+rb.y*sy,col=COLORS[rb.ci],gl=GLOWS[rb.ci];var halo=ctx.createRadialGradient(rx,ry,0,rx,ry,5);halo.addColorStop(0,colorAlpha(col,0.55));halo.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=halo;ctx.beginPath();ctx.arc(rx,ry,5,0,Math.PI*2);ctx.fill();ctx.shadowColor=gl;ctx.shadowBlur=5;ctx.fillStyle=col;ctx.beginPath();ctx.arc(rx,ry,1.8,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+  ctx.restore();
+  ctx.strokeStyle='rgba(120,170,255,.40)';ctx.lineWidth=1.2;roundRect(ctx,mx,my,MW,MH,10);ctx.stroke();
+  ctx.font='bold 8px sans-serif';ctx.fillStyle='rgba(140,170,255,.70)';ctx.textAlign='left';ctx.fillText('MINI MAP',mx+7,my+12);
+  ctx.font='bold 9px sans-serif';ctx.fillStyle='rgba(200,220,255,.50)';ctx.textAlign='right';ctx.fillText(S.robots.length+' robots',mx+MW-7,my+MH-6);
+  ctx.restore();
+}
+function drawFrame(){
+  var W=S.W,H=S.H;var bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#07091a');bg.addColorStop(1,'#0d1533');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  var gs=60;ctx.lineWidth=0.5;
+  for(var gx=0;gx<=W;gx+=gs){ctx.strokeStyle='rgba(80,120,220,'+(gx%(gs*5)===0?0.22:0.07)+')';ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+  for(var gy=0;gy<=H;gy+=gs){ctx.strokeStyle='rgba(80,120,220,'+(gy%(gs*5)===0?0.22:0.07)+')';ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+  var c1=ctx.createRadialGradient(0,0,0,0,0,W*0.55);c1.addColorStop(0,'rgba(60,80,200,.12)');c1.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=c1;ctx.fillRect(0,0,W,H);
+  var c2=ctx.createRadialGradient(W,H,0,W,H,W*0.55);c2.addColorStop(0,'rgba(120,40,180,.10)');c2.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=c2;ctx.fillRect(0,0,W,H);
+  for(var oi=0;oi<S.obstacles.length;oi++)drawGlassyObstacle(S.obstacles[oi]);
+  if(S.trails){for(var ti=0;ti<S.robots.length;ti++){var rb=S.robots[ti];if(rb.trail.length<2)continue;var col=COLORS[rb.ci];for(var t=1;t<rb.trail.length;t++){ctx.strokeStyle=colorAlpha(col,(t/rb.trail.length)*0.45);ctx.lineWidth=1.5*(t/rb.trail.length);ctx.shadowColor=colorAlpha(col,0.3);ctx.shadowBlur=4;ctx.beginPath();ctx.moveTo(rb.trail[t-1].x,rb.trail[t-1].y);ctx.lineTo(rb.trail[t].x,rb.trail[t].y);ctx.stroke();}ctx.shadowBlur=0;}}
+  for(var ri=0;ri<S.robots.length;ri++){var r=S.robots[ri];drawGlassyCar(r.x,r.y,Math.atan2(r.vy,r.vx),r.ci);}
+  drawMiniMap();
+}
+function stepSim(){
+  var spd=S.speed,sepW=S.sep,aliW=S.ali,cohW=S.coh,avoidR=S.avoidR,nR=S.nR,W=S.W,H=S.H,newRobots=[];
+  for(var i=0;i<S.robots.length;i++){
+    var r=S.robots[i],sX=0,sY=0,aX=0,aY=0,cX=0,cY=0,n=0,tc=0,oX=0,oY=0;
+    for(var j=0;j<S.robots.length;j++){var nb=S.robots[j];if(nb.id===r.id)continue;var dx=r.x-nb.x,dy=r.y-nb.y,d=Math.hypot(dx,dy)||0.001;if(d<nR){aX+=nb.vx;aY+=nb.vy;cX+=nb.x;cY+=nb.y;n++;if(d<R_RAD*3.5){sX+=(dx/d)/(d+0.01);sY+=(dy/d)/(d+0.01);tc++;}}}
+    for(var k=0;k<S.obstacles.length;k++){var ob=S.obstacles[k];var dx2=r.x-ob.x,dy2=r.y-ob.y,d2=Math.hypot(dx2,dy2)||0.001;if(d2<avoidR){var st=Math.pow((avoidR-d2)/avoidR,2)*3.5;oX+=(dx2/d2)*st;oY+=(dy2/d2)*st;}if(d2<ob.radius+R_RAD+10){oX+=(dx2/d2)*8;oY+=(dy2/d2)*8;}}
+    var vx=r.vx,vy=r.vy;if(tc>0){vx+=sX*sepW*0.12;vy+=sY*sepW*0.12;}
+    if(n>0){var aS=Math.hypot(aX/n,aY/n)||1;vx+=(aX/n/aS)*aliW*0.06;vy+=(aY/n/aS)*aliW*0.06;var cx2=cX/n-r.x,cy2=cY/n-r.y,cS=Math.hypot(cx2,cy2)||1;vx+=(cx2/cS)*cohW*0.04;vy+=(cy2/cS)*cohW*0.04;}
+    vx+=oX*0.25+(Math.random()-0.5)*0.15;vy+=oY*0.25+(Math.random()-0.5)*0.15;
+    var lm=limitSpeed(vx,vy,spd*1.5);vx=lm.vx;vy=lm.vy;var cs=Math.hypot(vx,vy);if(cs<spd*0.5){var nm=cs||1;vx=vx/nm*spd*0.5;vy=vy/nm*spd*0.5;}
+    var nx=r.x+vx,ny=r.y+vy;if(nx<R_RAD){nx=R_RAD;vx=Math.abs(vx);}if(nx>W-R_RAD){nx=W-R_RAD;vx=-Math.abs(vx);}if(ny<R_RAD){ny=R_RAD;vy=Math.abs(vy);}if(ny>H-R_RAD){ny=H-R_RAD;vy=-Math.abs(vy);}
+    var trail=S.trails?r.trail.slice(-20).concat([{x:r.x,y:r.y}]):[];
+    newRobots.push({id:r.id,x:nx,y:ny,vx:vx,vy:vy,ci:r.ci,trail:trail});
+  }
+  S.robots=newRobots;S.tick++;
+  if(S.tick%30===0){var ts=0,cl=0;for(var m=0;m<S.robots.length;m++){var rb2=S.robots[m];ts+=Math.hypot(rb2.vx,rb2.vy);var near=0;for(var p=0;p<S.robots.length;p++){if(S.robots[p].id!==rb2.id&&Math.hypot(S.robots[p].x-rb2.x,S.robots[p].y-rb2.y)<S.nR*0.8)near++;}if(near>=2)cl++;}document.getElementById('s-speed').textContent=(S.robots.length?ts/S.robots.length:0).toFixed(2);document.getElementById('s-clustered').textContent=cl;}
+}
+function loop(){if(!S.running)return;stepSim();drawFrame();S.animFrame=requestAnimationFrame(loop);}
+function setSlider(id,val,min,max){document.getElementById('v-'+id).textContent=val;document.getElementById('f-'+id).style.width=((val-min)/(max-min)*100)+'%';}
+function onRobots(v){v=parseInt(v);setSlider('robots',v,5,80);document.getElementById('s-robots').textContent=v;S.robots=spawnRobots(v);}
+function onObstacles(v){v=parseInt(v);setSlider('obstacles',v,0,25);document.getElementById('s-obstacles').textContent=v;S.obstacles=spawnObstacles(v);if(!S.running)drawFrame();}
+function onSpeed(v){v=parseFloat(v);setSlider('speed',v.toFixed(1),0.5,5);S.speed=v;}
+function onNRadius(v){v=parseInt(v);setSlider('nradius',v,30,160);S.nR=v;}
+function onSep(v){v=parseFloat(v);setSlider('sep',v.toFixed(1),0,4);S.sep=v;}
+function onAli(v){v=parseFloat(v);setSlider('ali',v.toFixed(1),0,4);S.ali=v;}
+function onCoh(v){v=parseFloat(v);setSlider('coh',v.toFixed(1),0,4);S.coh=v;}
+function toggleTrails(){S.trails=!S.trails;var tog=document.getElementById('tog-trails'),knob=document.getElementById('knob-trails');if(S.trails){tog.style.background='#6080ff';tog.style.boxShadow='0 0 12px #6080ff55';knob.style.left='calc(100% - 17px)';}else{tog.style.background='rgba(255,255,255,.15)';tog.style.boxShadow='none';knob.style.left='3px';}}
+var playBtn=document.getElementById('btn-play');
+playBtn.onclick=function(){S.running=!S.running;if(S.running){playBtn.textContent='Pause';playBtn.className='btn-pause';document.getElementById('pause-hint').style.display='none';S.animFrame=requestAnimationFrame(loop);}else{playBtn.textContent='Play';playBtn.className='btn-play';document.getElementById('pause-hint').style.display='flex';cancelAnimationFrame(S.animFrame);}};
+function resetSim(){cancelAnimationFrame(S.animFrame);S.running=false;S.tick=0;playBtn.textContent='Play';playBtn.className='btn-play';document.getElementById('pause-hint').style.display='flex';document.getElementById('s-speed').textContent='0.00';document.getElementById('s-clustered').textContent='0';initSim();drawFrame();}
+canvas.addEventListener('click',function(e){var rect=canvas.getBoundingClientRect();var x=(e.clientX-rect.left)*(canvas.width/rect.width);var y=(e.clientY-rect.top)*(canvas.height/rect.height);var shape=Math.random()<0.5?'circle':'rect';var radius=OBS_RAD+Math.random()*10;var w=shape==='rect'?38+Math.random()*28:radius*2;var h=shape==='rect'?26+Math.random()*18:radius*2;S.obstacles.push({id:Date.now(),x:x,y:y,radius:radius,shape:shape,w:w,h:h});var nc=S.obstacles.length;document.getElementById('s-obstacles').textContent=nc;document.getElementById('v-obstacles').textContent=nc;document.getElementById('r-obstacles').value=Math.min(nc,25);setSlider('obstacles',Math.min(nc,25),0,25);if(!S.running)drawFrame();});
+resize();
+</script>
+</body>
+</html>
